@@ -48,7 +48,7 @@ async function handler(
         per: TeamDatasetCreatePermissionVal
       });
 
-  await mongoSessionRun(async (session) => {
+  const datasetId = await mongoSessionRun(async (session) => {
     const dataset = await MongoDataset.create({
       ...parseParentIdInMongo(parentId),
       avatar: FolderImgUrl,
@@ -65,6 +65,7 @@ async function handler(
       resource: dataset,
       resourceType: PerResourceTypeEnum.dataset
     });
+    return dataset._id;
   });
   (async () => {
     addAuditLog({
@@ -77,6 +78,6 @@ async function handler(
     });
   })();
 
-  return {};
+  return datasetId;
 }
 export default NextAPI(handler);

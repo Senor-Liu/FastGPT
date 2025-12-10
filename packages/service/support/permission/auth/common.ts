@@ -154,7 +154,11 @@ export async function parseHeaderCert({
     sourceName,
     apikey: openApiKey,
     isRoot: !!isRoot,
-    sessionId
+    sessionId,
+    // 新增：资源权限列表
+    allowApps: (await authCookieToken(cookie, token))?.allowApps,
+    allowDatasets: (await authCookieToken(cookie, token))?.allowDatasets,
+    isIframe: (await authCookieToken(cookie, token))?.isIframe
   };
 }
 
@@ -163,7 +167,7 @@ export const TokenName = 'fastgpt_token';
 export const setCookie = (res: NextApiResponse, token: string) => {
   res.setHeader(
     'Set-Cookie',
-    `${TokenName}=${token}; Path=/; HttpOnly; Max-Age=604800; Samesite=Strict;`
+    `${TokenName}=${token}; Path=/; HttpOnly; Max-Age=604800; Samesite=None; Secure` // 允许跨站 Cookie
   );
 };
 

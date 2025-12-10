@@ -20,6 +20,7 @@ import { getOrgIdSetWithParentByTmbId } from '@fastgpt/service/support/permissio
 import { addSourceMember } from '@fastgpt/service/support/user/utils';
 import { FlowNodeTypeEnum } from '@fastgpt/global/core/workflow/node/constant';
 import { sumPer } from '@fastgpt/global/support/permission/utils';
+import { addLog } from '@fastgpt/service/common/system/log';
 
 export type ListAppBody = {
   parentId?: ParentIdType;
@@ -42,7 +43,7 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
   const { parentId, type, getRecentlyChat, searchKey } = req.body;
 
   // Auth user permission
-  const [{ tmbId, teamId, permission: teamPer }] = await Promise.all([
+  const [authResult] = await Promise.all([
     authUserPer({
       req,
       authToken: true,
@@ -61,6 +62,11 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
         ]
       : [])
   ]);
+  const { tmbId, teamId, permission: teamPer } = authResult;
+  const allowApps = (authResult as any)?.allowApps as string[] | undefined;
+  const isIframe = (authResult as any)?.isIframe as boolean;
+  addLog.info(`allowApps:${allowApps}`);
+  addLog.info(`isIframe:${isIframe}`);
 
   // Get team all app permissions
   const [roleList, myGroupMap, myOrgSet] = await Promise.all([
@@ -94,7 +100,7 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
       myOrgSet.has(String(item.orgId))
   );
 
-  const findAppsQuery = (() => {
+  let findAppsQuery = (() => {
     if (getRecentlyChat) {
       return {
         // get all chat app, excluding hidden apps
@@ -153,6 +159,10 @@ async function handler(req: ApiRequestProps<ListAppBody>): Promise<AppListItemTy
       ...parseParentIdInMongo(parentId)
     };
   })();
+  // 外部平台资源过滤：若 session 存在 allowApps，则仅返回名单内的应用
+  if (isIframe && allowApps) {
+    findAppsQuery = { $and: [findAppsQuery, { _id: { $in: allowApps } }] } as any;
+  }
   const limit = (() => {
     if (getRecentlyChat) return 15;
     if (searchKey) return 50;

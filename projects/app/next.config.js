@@ -21,13 +21,23 @@ const nextConfig = {
   swcMinify: true, // 使用 SWC 压缩（生产环境已默认）
   async headers() {
     return [
+      // FS-精确控制允许嵌入
+      // {
+      //   source: '/app/detail',
+      //   headers: [
+      //     // 优先用 CSP 管控允许的父页面域名
+      //     { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://your-host.com" },
+      //     // 不再设置 DENY
+      //   ],
+      // },
       {
         source: '/((?!chat/share$).*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY'
-          },
+          // FS-注释则全局允许嵌入
+          // {
+          //   key: 'X-Frame-Options',
+          //   value: 'DENY'
+          // },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'

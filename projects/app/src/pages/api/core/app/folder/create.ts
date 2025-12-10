@@ -41,7 +41,7 @@ async function handler(req: ApiRequestProps<CreateAppFolderBody>) {
     : await authUserPer({ req, authToken: true, per: TeamAppCreatePermissionVal });
 
   // Create app
-  await mongoSessionRun(async (session) => {
+  const appId = await mongoSessionRun(async (session) => {
     const app = await MongoApp.create({
       ...parseParentIdInMongo(parentId),
       avatar: FolderImgUrl,
@@ -58,6 +58,7 @@ async function handler(req: ApiRequestProps<CreateAppFolderBody>) {
       resource: app,
       resourceType: PerResourceTypeEnum.app
     });
+    return app._id;
   });
   (async () => {
     addAuditLog({
@@ -69,6 +70,7 @@ async function handler(req: ApiRequestProps<CreateAppFolderBody>) {
       }
     });
   })();
+  return appId;
 }
 
 export default NextAPI(handler);

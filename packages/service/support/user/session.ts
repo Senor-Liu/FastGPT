@@ -14,6 +14,9 @@ type SessionType = {
   isRoot?: boolean;
   createdAt: number;
   ip?: string | null;
+  allowApps: string[];
+  allowDatasets: string[];
+  isIframe: boolean;
 };
 
 /* Session manager */
@@ -38,7 +41,10 @@ const setSession = async ({
         tmbId: data.tmbId,
         isRoot: data.isRoot ? '1' : '0',
         createdAt: data.createdAt.toString(),
-        ip: data.ip
+        ip: data.ip,
+        allowApps: data.allowApps ? JSON.stringify(data.allowApps) : '[]',
+        allowDatasets: data.allowDatasets ? JSON.stringify(data.allowDatasets) : '[]',
+        isIframe: data.isIframe ? '1' : '0'
       });
 
       // 设置过期时间
@@ -75,7 +81,10 @@ const getSession = async (key: string): Promise<SessionType> => {
       tmbId: data.tmbId,
       isRoot: data.isRoot === '1',
       createdAt: parseInt(data.createdAt),
-      ip: data.ip
+      ip: data.ip,
+      allowApps: data.allowApps ? JSON.parse(data.allowApps) : undefined,
+      allowDatasets: data.allowDatasets ? JSON.parse(data.allowDatasets) : undefined,
+      isIframe: data.isIframe === '1'
     };
   } catch (error) {
     addLog.error('Parse session error:', error);
@@ -93,6 +102,11 @@ export const delUserAllSession = async (userId: string, whiteList?: (string | un
   if (keys.length > 0) {
     await redis.del(keys);
   }
+};
+
+export const delUserSession = async (sessionId: string) => {
+  const redis = getGlobalRedisConnection();
+  await redis.del(`${redisPrefix}${String(sessionId)}`);
 };
 
 // 会根据创建时间，删除超出客户端登录限制的 session
@@ -144,13 +158,19 @@ export const createUserSession = async ({
   teamId,
   tmbId,
   isRoot,
-  ip
+  ip,
+  allowApps,
+  allowDatasets,
+  isIframe
 }: {
   userId: string;
   teamId: string;
   tmbId: string;
   isRoot?: boolean;
   ip?: string | null;
+  allowApps: string[];
+  allowDatasets: string[];
+  isIframe: boolean;
 }) => {
   const key = `${String(userId)}:${getNanoid(32)}`;
 
@@ -162,12 +182,15 @@ export const createUserSession = async ({
       tmbId: String(tmbId),
       isRoot,
       createdAt: new Date().getTime(),
-      ip
+      ip,
+      allowApps,
+      allowDatasets,
+      isIframe
     },
     expireSeconds: 7 * 24 * 60 * 60
   });
 
-  delRedundantSession(userId);
+  // delRedundantSession(userId);
 
   return key;
 };

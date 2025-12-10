@@ -29,7 +29,7 @@ export const getTokenLogin = () =>
 export const oauthLogin = (params: OauthLoginProps) =>
   POST<LoginSuccessResponse>('/proApi/support/user/account/login/oauth', params);
 export const postFastLogin = (params: FastLoginProps) =>
-  POST<LoginSuccessResponse>('/proApi/support/user/account/login/fastLogin', params);
+  POST<LoginSuccessResponse>('/support/user/account/login/fastLogin', params);
 export const ssoLogin = (params: any) =>
   GET<LoginSuccessResponse>('/proApi/support/user/account/sso', params);
 

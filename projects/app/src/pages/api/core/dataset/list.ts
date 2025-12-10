@@ -29,7 +29,7 @@ async function handler(req: ApiRequestProps<GetDatasetListBody>) {
   const { parentId, type, searchKey } = req.body;
 
   // Auth user permission
-  const [{ tmbId, teamId, permission: teamPer }] = await Promise.all([
+  const [authResult] = await Promise.all([
     authUserPer({
       req,
       authToken: true,
@@ -48,6 +48,9 @@ async function handler(req: ApiRequestProps<GetDatasetListBody>) {
         ]
       : [])
   ]);
+  const { tmbId, teamId, permission: teamPer } = authResult;
+  const allowDatasets = (authResult as any)?.allowDatasets as string[] | undefined;
+  const isIframe = (authResult as any)?.isIframe as boolean;
 
   // Get team all app permissions
   const [roleList, myGroupMap, myOrgSet] = await Promise.all([
@@ -80,7 +83,7 @@ async function handler(req: ApiRequestProps<GetDatasetListBody>) {
       myOrgSet.has(String(item.orgId))
   );
 
-  const findDatasetQuery = (() => {
+  let findDatasetQuery = (() => {
     // Filter apps by permission, if not owner, only get apps that I have permission to access
     const idList = { _id: { $in: myRoles.map((item) => item.resourceId) } };
     const datasetPerQuery = teamPer.isOwner
@@ -118,6 +121,10 @@ async function handler(req: ApiRequestProps<GetDatasetListBody>) {
       ...parseParentIdInMongo(parentId)
     };
   })();
+  // 外部平台资源过滤：若 session 存在 allowDatasets，则仅返回名单内的知识库
+  if (isIframe && allowDatasets) {
+    findDatasetQuery = { $and: [findDatasetQuery, { _id: { $in: allowDatasets } }] } as any;
+  }
 
   const myDatasets = await MongoDataset.find(findDatasetQuery)
     .sort({
