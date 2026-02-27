@@ -145,6 +145,16 @@ export async function parseHeaderCert({
     return Promise.reject(ERROR_ENUM.unAuthorization);
   }
 
+  // 新增：资源权限列表
+  let allowApps: string[] = [],
+    allowDatasets: string[] = [],
+    isIframe: boolean = false;
+  if (authType === AuthUserTypeEnum.token) {
+    allowApps = (await authCookieToken(cookie, token))?.allowApps;
+    allowDatasets = (await authCookieToken(cookie, token))?.allowDatasets;
+    isIframe = (await authCookieToken(cookie, token))?.isIframe;
+  }
+
   return {
     userId: String(uid),
     teamId: String(teamId),
@@ -156,9 +166,9 @@ export async function parseHeaderCert({
     isRoot: !!isRoot,
     sessionId,
     // 新增：资源权限列表
-    allowApps: (await authCookieToken(cookie, token))?.allowApps,
-    allowDatasets: (await authCookieToken(cookie, token))?.allowDatasets,
-    isIframe: (await authCookieToken(cookie, token))?.isIframe
+    allowApps,
+    allowDatasets,
+    isIframe
   };
 }
 
